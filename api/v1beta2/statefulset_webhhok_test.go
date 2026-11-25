@@ -172,4 +172,20 @@ var _ = Describe("StatefulSet Webhook", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(r.Spec.UpdateStrategy.RollingUpdate.Partition).To(Equal(new(int32(5))))
 	})
+
+	It("should not set partition when the owner reference only matches the kind", func() {
+		r := makeStatefulSet()
+		r.OwnerReferences[0].APIVersion = "example.com/v1"
+		err := k8sClient.Create(ctx, r)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(r.Spec.UpdateStrategy.RollingUpdate).To(BeNil())
+	})
+
+	It("should not set partition when the owner reference only matches the apiVersion", func() {
+		r := makeStatefulSet()
+		r.OwnerReferences[0].Kind = "OtherKind"
+		err := k8sClient.Create(ctx, r)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(r.Spec.UpdateStrategy.RollingUpdate).To(BeNil())
+	})
 })
