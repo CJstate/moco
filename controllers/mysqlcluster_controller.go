@@ -571,7 +571,7 @@ func (r *MySQLClusterReconciler) reconcileV1FluentBitConfigMap(ctx context.Conte
 			return nil, err
 		}
 		for _, old := range cms.Items {
-			if strings.HasPrefix(old.Name, prefix) {
+			if strings.HasPrefix(old.Name, prefix) && isOwnedByCluster(&old, cluster) {
 				if err := r.Delete(ctx, &old); err != nil && !apierrors.IsNotFound(err) {
 					return nil, fmt.Errorf("failed to delete old configmap %s/%s: %w", old.Namespace, old.Name, err)
 				}
@@ -580,6 +580,14 @@ func (r *MySQLClusterReconciler) reconcileV1FluentBitConfigMap(ctx context.Conte
 		}
 		return nil, nil
 	}
+}
+
+// isOwnedByCluster reports whether obj is controlled by this MySQLCluster.
+// Cleanup must never touch a ConfigMap that merely shares a name prefix with
+// another cluster (e.g. "foo" vs "foo-bar").
+func isOwnedByCluster(obj client.Object, cluster *mocov1beta2.MySQLCluster) bool {
+	owner := metav1.GetControllerOf(obj)
+	return owner != nil && owner.UID == cluster.UID
 }
 
 func (r *MySQLClusterReconciler) cleanupOldConfigMaps(ctx context.Context, cluster *mocov1beta2.MySQLCluster, namePrefix, currentName string) error {
@@ -597,7 +605,7 @@ func (r *MySQLClusterReconciler) cleanupOldConfigMaps(ctx context.Context, clust
 
 	oldConfigCount := 0
 	for _, old := range cms.Items {
-		if !strings.HasPrefix(old.Name, namePrefix) || old.Name == currentName {
+		if !strings.HasPrefix(old.Name, namePrefix) || old.Name == currentName || !isOwnedByCluster(&old, cluster) {
 			continue
 		}
 		oldConfigCount++
