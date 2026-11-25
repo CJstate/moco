@@ -1,10 +1,12 @@
 package controllers
 
 import (
-	"k8s.io/utils/ptr"
+	"testing"
+
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"path/filepath"
 	"strings"
 	"time"
@@ -2413,15 +2415,21 @@ dummyKey: dummyValue
 func TestIsOwnedByCluster(t *testing.T) {
 	cluster := &mocov1beta2.MySQLCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", UID: "cluster-foo"}}
 	owned := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name: "moco-slow-log-agent-config-foo",
+		Name:            "moco-slow-log-agent-config-foo",
 		OwnerReferences: []metav1.OwnerReference{{APIVersion: mocov1beta2.GroupVersion.String(), Kind: "MySQLCluster", Name: "foo", UID: "cluster-foo", Controller: ptr.To(true)}},
 	}}
 	other := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name: "moco-slow-log-agent-config-foo-bar",
+		Name:            "moco-slow-log-agent-config-foo-bar",
 		OwnerReferences: []metav1.OwnerReference{{APIVersion: mocov1beta2.GroupVersion.String(), Kind: "MySQLCluster", Name: "foo-bar", UID: "cluster-foobar", Controller: ptr.To(true)}},
 	}}
 	unowned := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "moco-slow-log-agent-config-foo"}}
-	if !isOwnedByCluster(owned, cluster) { t.Fatal("owned ConfigMap should be recognised") }
-	if isOwnedByCluster(other, cluster) { t.Fatal("ConfigMap owned by foo-bar must not match foo") }
-	if isOwnedByCluster(unowned, cluster) { t.Fatal("ConfigMap without controller owner must not match") }
+	if !isOwnedByCluster(owned, cluster) {
+		t.Fatal("owned ConfigMap should be recognised")
+	}
+	if isOwnedByCluster(other, cluster) {
+		t.Fatal("ConfigMap owned by foo-bar must not match foo")
+	}
+	if isOwnedByCluster(unowned, cluster) {
+		t.Fatal("ConfigMap without controller owner must not match")
+	}
 }
